@@ -1,0 +1,16 @@
+[project]
+name = "blastpack"
+version = "0.1.0"
+description = "Compact, database-free blast-radius artifact from a SharpHound collection"
+requires-python = ">=3.10"
+dependencies = []
+
+[project.scripts]
+blastpack = "blastpack.cli:main"
+
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+include = ["blastpack*"]

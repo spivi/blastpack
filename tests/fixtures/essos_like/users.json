@@ -1,0 +1,7 @@
+{"meta": {"type": "users", "count": 4, "version": 5, "collectedOn": "2024-01-02T00:00:00Z"},
+ "data": [
+   {"ObjectIdentifier": "S-1-5-21-AAA-1001", "Properties": {"name": "ALICE@CORP.LOCAL", "domain": "CORP.LOCAL", "admincount": true}, "Aces": [], "PrimaryGroupSID": "S-1-5-21-AAA-513"},
+   {"ObjectIdentifier": "S-1-5-21-AAA-1002", "Properties": {"name": "BOB@CORP.LOCAL", "domain": "CORP.LOCAL"}, "Aces": [], "PrimaryGroupSID": "S-1-5-21-AAA-513"},
+   {"ObjectIdentifier": "S-1-5-21-AAA-1003", "Properties": {"name": "EVE@CORP.LOCAL", "domain": "CORP.LOCAL"}, "Aces": [], "PrimaryGroupSID": "S-1-5-21-AAA-513"},
+   {"ObjectIdentifier": "S-1-5-21-BBB-1001", "Properties": {"name": "CAROL@DEV.LOCAL", "domain": "DEV.LOCAL"}, "Aces": [], "PrimaryGroupSID": "S-1-5-21-BBB-513"}
+ ]}

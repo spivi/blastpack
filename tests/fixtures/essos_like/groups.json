@@ -1,0 +1,10 @@
+{"meta": {"type": "groups", "count": 3},
+ "data": [
+   {"ObjectIdentifier": "S-1-5-21-AAA-512", "Properties": {"name": "DOMAIN ADMINS@CORP.LOCAL", "domain": "CORP.LOCAL", "highvalue": true},
+    "Aces": [], "Members": [{"ObjectIdentifier": "S-1-5-21-AAA-1001", "ObjectType": "User"}]},
+   {"ObjectIdentifier": "S-1-5-21-AAA-513", "Properties": {"name": "DOMAIN USERS@CORP.LOCAL", "domain": "CORP.LOCAL"},
+    "Aces": [], "Members": [{"ObjectIdentifier": "S-1-5-21-AAA-1002", "ObjectType": "User"},
+                            {"ObjectIdentifier": "S-1-5-21-AAA-1003", "ObjectType": "User"}]},
+   {"ObjectIdentifier": "S-1-5-21-BBB-512", "Properties": {"name": "DOMAIN ADMINS@DEV.LOCAL", "domain": "DEV.LOCAL", "highvalue": true},
+    "Aces": [], "Members": [{"ObjectIdentifier": "S-1-5-21-BBB-1001", "ObjectType": "User"}]}
+ ]}

@@ -1,0 +1,5 @@
+{"meta": {"type": "domains", "count": 2},
+ "data": [
+   {"ObjectIdentifier": "S-1-5-21-AAA", "Properties": {"name": "CORP.LOCAL", "domain": "CORP.LOCAL"}, "Aces": []},
+   {"ObjectIdentifier": "S-1-5-21-BBB", "Properties": {"name": "DEV.LOCAL", "domain": "DEV.LOCAL"}, "Aces": []}
+ ]}

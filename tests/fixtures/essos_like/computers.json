@@ -1,0 +1,9 @@
+{"meta": {"type": "computers", "count": 2},
+ "data": [
+   {"ObjectIdentifier": "S-1-5-21-AAA-2001", "Properties": {"name": "WS01.CORP.LOCAL", "domain": "CORP.LOCAL"},
+    "Aces": [{"PrincipalSID": "S-1-5-21-AAA-512", "PrincipalType": "Group", "RightName": "GenericAll"}],
+    "Sessions": {"Results": [{"UserSID": "S-1-5-21-AAA-1002", "ComputerSID": "S-1-5-21-AAA-2001"}]},
+    "LocalAdmins": {"Results": [{"ObjectIdentifier": "S-1-5-21-AAA-1001", "ObjectType": "User"}]}},
+   {"ObjectIdentifier": "S-1-5-21-AAA-2002", "Properties": {"name": "WS02.CORP.LOCAL", "domain": "CORP.LOCAL"},
+    "Aces": [], "Sessions": {"Results": []}, "LocalAdmins": {"Results": []}}
+ ]}
