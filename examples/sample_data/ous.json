@@ -1,0 +1,10 @@
+{
+  "meta": {"type": "ous", "count": 1},
+  "data": [
+    {
+      "ObjectIdentifier": "S-1-5-21-CORP-OU-WKS",
+      "Properties": {"name": "WORKSTATIONS@CORP.LOCAL", "domain": "CORP.LOCAL"},
+      "Aces": []
+    }
+  ]
+}

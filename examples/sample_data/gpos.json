@@ -1,0 +1,10 @@
+{
+  "meta": {"type": "gpos", "count": 1},
+  "data": [
+    {
+      "ObjectIdentifier": "S-1-5-21-CORP-GPO-DDP",
+      "Properties": {"name": "DEFAULT DOMAIN POLICY@CORP.LOCAL", "domain": "CORP.LOCAL"},
+      "Aces": []
+    }
+  ]
+}

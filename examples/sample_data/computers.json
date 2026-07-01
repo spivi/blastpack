@@ -1,0 +1,28 @@
+{
+  "meta": {"type": "computers", "count": 2},
+  "data": [
+    {
+      "ObjectIdentifier": "S-1-5-21-CORP-2001",
+      "Properties": {"name": "WS01.CORP.LOCAL", "domain": "CORP.LOCAL"},
+      "Aces": [
+        {"PrincipalSID": "S-1-5-21-CORP-1201", "PrincipalType": "Group", "RightName": "GenericAll"},
+        {"PrincipalSID": "S-1-5-21-CORP-1103", "PrincipalType": "User", "RightName": "AddKeyCredentialLink"}
+      ],
+      "Sessions": {"Results": [
+        {"UserSID": "S-1-5-21-CORP-1101", "ComputerSID": "S-1-5-21-CORP-2001"}
+      ]},
+      "LocalAdmins": {"Results": [
+        {"ObjectIdentifier": "S-1-5-21-CORP-1102", "ObjectType": "User"}
+      ]}
+    },
+    {
+      "ObjectIdentifier": "S-1-5-21-CORP-2002",
+      "Properties": {"name": "SRV01.CORP.LOCAL", "domain": "CORP.LOCAL"},
+      "Aces": [
+        {"PrincipalSID": "S-1-5-21-CORP-1103", "PrincipalType": "User", "RightName": "SyncLAPSPassword"}
+      ],
+      "Sessions": {"Results": []},
+      "LocalAdmins": {"Results": []}
+    }
+  ]
+}

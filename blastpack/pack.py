@@ -22,6 +22,10 @@ class NodeResolveError(Exception):
     """A node token matched zero or more than one node."""
 
 
+class PackValidationError(Exception):
+    """A pack failed structural validation on read, before any query."""
+
+
 def build_pack(graph, ordering_name="domain_grouped", source_name="",
                build_timestamp=""):
     perm = cluster_aware_bloodhound(graph)
@@ -62,6 +66,8 @@ def build_pack(graph, ordering_name="domain_grouped", source_name="",
             "edge_count": edges,
             "dropped_count": m["dropped_edges"],
             "build_timestamp": build_timestamp,
+            "unsupported_edge_counts": m.get("unsupported_edge_counts", {}),
+            "unsupported_file_types": m.get("unsupported_file_types", {}),
         },
         "ordering": ordering_name,
         "nodes": nodes,
@@ -116,9 +122,68 @@ def write_pack(pack, path):
         f.write(data)
 
 
+def validate_pack(pack):
+    """Structural gate for read_pack: shape and decodability only, not
+    reachability correctness (that is run_oracle_gate, at build time). A row that
+    decodes cleanly but is semantically wrong passes here by design. Returns the
+    pack so callers can validate-and-return in one line."""
+    if not isinstance(pack, dict):
+        raise PackValidationError("pack is not a JSON object")
+    if pack.get("version") != VERSION:
+        raise PackValidationError(
+            f"unsupported pack version {pack.get('version')!r}; expected {VERSION}")
+
+    nodes = pack.get("nodes")
+    rows = pack.get("rows")
+    if not isinstance(nodes, list):
+        raise PackValidationError("nodes is not a list")
+    if not isinstance(rows, list):
+        raise PackValidationError("rows is not a list")
+    if len(nodes) != len(rows):
+        raise PackValidationError(
+            f"nodes/rows length mismatch: {len(nodes)} vs {len(rows)}")
+
+    n = len(nodes)
+    seen_ids = set()
+    for idx, node in enumerate(nodes):
+        if not isinstance(node, dict) or "id" not in node:
+            raise PackValidationError(f"node {idx} missing 'id'")
+        nid = node["id"]
+        if nid in seen_ids:
+            raise PackValidationError(f"duplicate node id {nid!r}")
+        seen_ids.add(nid)
+
+    for idx, row_b64 in enumerate(rows):
+        if not isinstance(row_b64, str):
+            raise PackValidationError(f"row {idx} is not a base64 string")
+        try:
+            raw = closure.decompress(base64.b64decode(row_b64, validate=True))
+        except Exception as e:
+            raise PackValidationError(f"row {idx} not decodable: {e}") from e
+        # Byte-length overshoot alone is fine (rows are ceil(n/8) bytes); only an
+        # actually-set bit at position >= n is a defect. Mirrors decode_pack_row's
+        # own pos < len(nodes) guard.
+        for byte_idx, byte in enumerate(raw):
+            if not byte:
+                continue
+            for bit in range(8):
+                if byte & (1 << bit) and (byte_idx * 8 + bit) >= n:
+                    raise PackValidationError(
+                        f"row {idx} sets bit {byte_idx * 8 + bit} >= node count {n}")
+
+    prov = pack.get("provenance")
+    if not isinstance(prov, dict):
+        raise PackValidationError("provenance missing or not an object")
+    for field in ("node_count", "edge_count", "build_timestamp"):
+        if field not in prov:
+            raise PackValidationError(f"provenance missing field {field!r}")
+    return pack
+
+
 def read_pack(path):
     with gzip.open(path, "rb") as f:
-        return json.loads(f.read().decode())
+        pack = json.loads(f.read().decode())
+    return validate_pack(pack)
 
 
 def resolve_node(pack, token):

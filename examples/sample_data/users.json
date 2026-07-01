@@ -1,0 +1,23 @@
+{
+  "meta": {"type": "users", "count": 3},
+  "data": [
+    {
+      "ObjectIdentifier": "S-1-5-21-CORP-1101",
+      "Properties": {"name": "JDOE@CORP.LOCAL", "domain": "CORP.LOCAL"},
+      "PrimaryGroupSID": "S-1-5-21-CORP-513",
+      "Aces": []
+    },
+    {
+      "ObjectIdentifier": "S-1-5-21-CORP-1102",
+      "Properties": {"name": "SVC_SQL@CORP.LOCAL", "domain": "CORP.LOCAL"},
+      "PrimaryGroupSID": "S-1-5-21-CORP-513",
+      "Aces": []
+    },
+    {
+      "ObjectIdentifier": "S-1-5-21-CORP-1103",
+      "Properties": {"name": "HELPDESK@CORP.LOCAL", "domain": "CORP.LOCAL"},
+      "PrimaryGroupSID": "S-1-5-21-CORP-513",
+      "Aces": []
+    }
+  ]
+}

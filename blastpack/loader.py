@@ -20,6 +20,15 @@ _FILE_TYPES = {
     "domains": "Domain", "ous": "OU", "gpos": "GPO", "containers": "Container",
 }
 
+# File categories BloodHound CE emits that blastpack recognizes by name but does
+# not model as graph nodes or edges. Named here so the coverage report can report
+# them explicitly instead of lumping them under "Unknown".
+KNOWN_UNMODELED_FILES = {
+    "certtemplates": "CertTemplate", "enterprisecas": "EnterpriseCA",
+    "rootcas": "RootCA", "ntauthstores": "NTAuthStore",
+    "aiacas": "AIACA", "issuancepolicies": "IssuancePolicy",
+}
+
 
 def _iter_json_files(path):
     path = pathlib.Path(path)
@@ -39,6 +48,39 @@ def _type_for(filename):
         if frag in low:
             return label
     return "Unknown"
+
+
+def _file_category(filename):
+    """Coverage bucket for a whole file: None if modeled, a KNOWN_UNMODELED label,
+    or "Unknown". Independent of _type_for so node typing is untouched. Modeled
+    types are checked first so e.g. a "containers" file never misfiles."""
+    low = filename.lower()
+    for frag in _FILE_TYPES:
+        if frag in low:
+            return None
+    for frag, label in KNOWN_UNMODELED_FILES.items():
+        if frag in low:
+            return label
+    return "Unknown"
+
+
+def _json_names(path):
+    """JSON filenames in a dir or zip, without parsing their contents."""
+    p = pathlib.Path(path)
+    if p.is_file() and p.suffix == ".zip":
+        with zipfile.ZipFile(p) as zf:
+            return [n for n in zf.namelist() if n.endswith(".json")]
+    return [fp.name for fp in sorted(p.glob("*.json"))]
+
+
+def _unsupported_file_types(path):
+    """{category: count} of JSON files whose name maps to an unmodeled category."""
+    counts = {}
+    for name in _json_names(path):
+        cat = _file_category(name)
+        if cat is not None:
+            counts[cat] = counts.get(cat, 0) + 1
+    return counts
 
 
 def _objects(doc):
@@ -107,6 +149,7 @@ def load(path):
     n = len(sid_of)
     adj = [set() for _ in range(n)]
     edge_counts = {}
+    unsupported_edge_counts = {}
     dropped = 0
 
     def add_edge(src_sid, dst_sid, label):
@@ -131,6 +174,9 @@ def load(path):
                 right = ace.get("RightName")
                 if right in CONTROL_EDGES:
                     add_edge(ace.get("PrincipalSID"), this_sid, right)
+                elif right is not None:
+                    unsupported_edge_counts[right] = \
+                        unsupported_edge_counts.get(right, 0) + 1
             for m in obj.get("Members", []) or []:
                 add_edge(m.get("ObjectIdentifier"), this_sid, "MemberOf")
             sessions = (obj.get("Sessions") or {}).get("Results", []) or []
@@ -146,5 +192,7 @@ def load(path):
         "highvalue_of": highvalue_of, "edge_counts": edge_counts,
         "dropped_edges": dropped, "collection": _collection_meta(docs),
         "dataset": pathlib.Path(path).name,
+        "unsupported_edge_counts": unsupported_edge_counts,
+        "unsupported_file_types": _unsupported_file_types(path),
     }
     return {"n": n, "adj": adj, "meta": meta}

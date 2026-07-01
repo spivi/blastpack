@@ -30,6 +30,17 @@ single query at small scale, a live BFS is already instant, so the reasons to us
 blastpack are the diff, the offline file, the metrics, and the library API rather
 than query speed.
 
+### Coverage: a supported edge subset, not a BloodHound-complete graph
+
+blastpack reachability is computed over a supported subset of BloodHound CE's
+classic control edges (group membership, `AdminTo`, sessions, and the common ACL
+control rights). It does not yet model ADCS/ESC edges, `DCSync`, `GPLink`,
+`Contains`, trust edges, or other post-processed relationships. ACE rights and
+file categories outside that subset are **counted, not silently dropped**: every
+`build` and `info` reports `unsupported_edge_counts` and `unsupported_file_types`
+so you can see exactly what was left out. Treat a pack as a supported-subset
+artifact, not a complete BloodHound CE attack graph.
+
 ## Install
 
     pip install -e .
@@ -47,6 +58,33 @@ Requires Python 3.10+. Standard library only, no runtime dependencies.
 
 `<node>` accepts a SID/objectid or a display name. A display name must match
 exactly one node.
+
+Every query command takes `--json` for a stable, machine-readable payload
+(`info`, `radius`, `reachers`, `top`, `diff`), so blastpack drops into a report or
+automation pipeline without screen-scraping the human output.
+
+## Try it on the bundled sample
+
+A small, self-contained SharpHound-shaped dataset ships in `examples/sample_data`
+so you can run the whole tool without a real collection:
+
+    blastpack build examples/sample_data -o /tmp/sample.blastpack
+    blastpack info  /tmp/sample.blastpack
+    blastpack top   /tmp/sample.blastpack --k 5
+    blastpack radius "HELPDESK@CORP.LOCAL" /tmp/sample.blastpack
+    blastpack info  --json /tmp/sample.blastpack | python -m json.tool
+
+The sample intentionally contains a couple of edge types blastpack does not model
+(an `AddKeyCredentialLink` ACE, a cert-templates file) so the coverage report is
+non-empty. `info` shows the counters:
+
+    node_count: 12  edge_count: 5  dropped_count: 0
+    unsupported_edge_counts: {'AddKeyCredentialLink': 1, 'SyncLAPSPassword': 1}
+    unsupported_file_types: {'CertTemplate': 1}
+
+Those lines are the honesty signal: they say, out loud, that the pack is a
+supported-subset artifact and name what it omitted. The built `.blastpack` is not
+committed (it is git-ignored); you rebuild it from the committed JSON above.
 
 ## Pack format
 
@@ -85,6 +123,10 @@ present itself as live.
 
 ## Limits
 
+- Supported edge subset only. Reachability covers classic control edges, not the
+  full BloodHound CE traversable-edge set (no ADCS, `DCSync`, `GPLink`, `Contains`,
+  or trust edges yet). Unsupported rights and file categories are counted and
+  reported, never silently dropped — see "Coverage" above.
 - Domain-sized collections only. The closure is O(V^2+VE). `build` warns past a
   few thousand nodes and prints an estimated build time. A large forest will not
   finish on a laptop.
@@ -95,7 +137,8 @@ present itself as live.
 
 ## Reference baseline
 
-On the public GOADv2 ESSOS.local domain (331 nodes, 845 control edges), a pack
-compresses to a ratio near 0.084, with a mean blast radius of about 9.2 of 331
-principals and a heavy-tailed distribution. The raw export is not bundled, so
-these figures are quoted as a reference rather than reproduced here.
+On the public GOADv2 ESSOS.local domain (331 nodes, 845 supported control edges),
+a pack compresses to a ratio near 0.084, with a mean blast radius of about 9.2 of
+331 nodes and a heavy-tailed distribution. The raw export is not bundled, so these
+figures are quoted as a reference rather than reproduced here — for a fully
+reproducible run, use the bundled `examples/sample_data` above.

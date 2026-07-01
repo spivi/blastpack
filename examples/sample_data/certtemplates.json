@@ -1,0 +1,10 @@
+{
+  "meta": {"type": "certtemplates", "count": 1},
+  "data": [
+    {
+      "ObjectIdentifier": "S-1-5-21-CORP-CT-USER",
+      "Properties": {"name": "USERAUTH@CORP.LOCAL", "domain": "CORP.LOCAL", "type": "CertTemplate"},
+      "Aces": []
+    }
+  ]
+}
