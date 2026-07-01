@@ -24,11 +24,19 @@ live BloodHound UI:
    enough to attach to a report and to keep many snapshots side by side for
    diffing over time.
 
-This is a complement to BloodHound. It does not handle live or churning graphs,
-and the O(V^2) build limits it to domain-sized collections on a laptop. For a
-single query at small scale, a live BFS is already instant, so the reasons to use
-blastpack are the diff, the offline file, the metrics, and the library API rather
-than query speed.
+This is a complement to BloodHound, not a replacement. When to reach for which:
+
+- **Use BloodHound CE** for pathfinding, edge semantics, ADCS/ESC, trusts, and
+  investigation — the full traversable-edge model and the "how do I abuse this"
+  detail.
+- **Use blastpack** for offline supported-subset reachability, report metrics,
+  remediation diffs, and automation over a frozen snapshot — a compact artifact
+  you can query, diff, and attach to a report without standing up Neo4j.
+
+It does not handle live or churning graphs, and the O(V^2) build limits it to
+domain-sized collections on a laptop. For a single query at small scale, a live
+BFS is already instant, so the reasons to use blastpack are the diff, the offline
+file, the metrics, and the library API rather than query speed.
 
 ### Coverage: a supported edge subset, not a BloodHound-complete graph
 
@@ -39,7 +47,16 @@ control rights). It does not yet model ADCS/ESC edges, `DCSync`, `GPLink`,
 file categories outside that subset are **counted, not silently dropped**: every
 `build` and `info` reports `unsupported_edge_counts` and `unsupported_file_types`
 so you can see exactly what was left out. Treat a pack as a supported-subset
-artifact, not a complete BloodHound CE attack graph.
+artifact, not a complete BloodHound CE attack graph. The full support boundary is
+tabulated in [docs/edge-support.md](docs/edge-support.md), and a reproducible
+run against the public BloodHound CE sample data is in
+[docs/sample-data-validation.md](docs/sample-data-validation.md).
+
+What "validated" means here: every build re-checks its own compressed rows
+against an independent BFS (the oracle gate), so the *reachability computation
+over the supported edges is correct*. That is not the same as proving the
+*supported edge set equals BloodHound CE's* — it does not. Correctness of the
+computation is verified; completeness of the edge model is not claimed.
 
 ## Install
 
@@ -59,9 +76,11 @@ Requires Python 3.10+. Standard library only, no runtime dependencies.
 `<node>` accepts a SID/objectid or a display name. A display name must match
 exactly one node.
 
-Every query command takes `--json` for a stable, machine-readable payload
-(`info`, `radius`, `reachers`, `top`, `diff`), so blastpack drops into a report or
-automation pipeline without screen-scraping the human output.
+Every command takes `--json` for a stable, machine-readable payload (`build`,
+`info`, `radius`, `reachers`, `top`, `diff`), so blastpack drops into a report or
+automation pipeline without screen-scraping the human output. `build --json`
+reports provenance plus a `coverage_status` (`clean`/`partial`) and an explicit
+`bloodhound_complete: false`, so CI can gate on coverage.
 
 ## Try it on the bundled sample
 
@@ -96,6 +115,14 @@ runs, and that ordering is recorded in the pack. Every `build` runs an equality
 gate: each stored row is decoded and checked against an independent forward BFS,
 and the build aborts if any row disagrees.
 
+On read, `read_pack()` runs `validate_pack()`, which is **structural integrity**,
+not graph correctness: it checks version, node/row shape, unique node IDs,
+base64/RLE decodability, in-range bits, and required provenance fields. A pack that
+is structurally valid but semantically wrong (a row that decodes cleanly but
+encodes the wrong set) passes validation — only the build-time oracle gate catches
+that. Validation protects against corrupt or truncated files, not against a
+mislabeled graph.
+
 ## Automation surface
 
 `blastpack.lib` is a read-only library for harnesses that query in process.
@@ -114,12 +141,18 @@ text, and it makes no decisions; the caller does.
 Bitsets are Python `int` values (arbitrary precision). Each row is decoded once on
 load. Union is `|`, intersection is `&`, popcount is `int.bit_count()`.
 
-Snapshot staleness: a pack reflects the graph at collection time. If a harness
-compromises nodes during a run, the real graph gains edges the pack does not know
-about, so a `reach` result is a lower bound on the changed graph. To account for
-this, either rebuild the pack or track the new edges separately.
+Snapshot staleness: a pack reflects the graph at collection time. The direction of
+the error depends on how the graph drifts:
+
+- **Monotonic attacker-gained edges** (a harness compromises nodes mid-run, adding
+  edges the pack never saw): a `reach` result is a *lower bound* on the changed
+  graph. Rebuild the pack or track the new edges separately.
+- **Arbitrary environmental drift** (sessions expire, machines are removed, ACLs
+  are remediated): edges the pack recorded may no longer exist, so a `reach` result
+  can *overstate* reachability. A stale pack is not a guaranteed lower bound.
+
 `P.provenance["build_timestamp"]` reports the snapshot's age. The library does not
-present itself as live.
+present itself as live — treat the answer as relative to the collection instant.
 
 ## Limits
 
@@ -139,6 +172,9 @@ present itself as live.
 
 On the public GOADv2 ESSOS.local domain (331 nodes, 845 supported control edges),
 a pack compresses to a ratio near 0.084, with a mean blast radius of about 9.2 of
-331 nodes and a heavy-tailed distribution. The raw export is not bundled, so these
-figures are quoted as a reference rather than reproduced here — for a fully
-reproducible run, use the bundled `examples/sample_data` above.
+331 nodes and a heavy-tailed distribution. These figures are **reproducible** from
+public data — `scripts/verify_sample_data.py` builds the collection from the
+[BloodHound CE sample-data repo](https://github.com/m4lwhere/Bloodhound-CE-Sample-Data)
+and independently re-checks every reachability row against a BFS oracle. See
+[docs/sample-data-validation.md](docs/sample-data-validation.md) for the exact
+commands, the full six-dataset table, and what the check does and does not prove.

@@ -2,6 +2,7 @@
 import argparse
 import datetime
 import json
+import sys
 
 from blastpack import diff as diffmod, loader, metrics, pack
 
@@ -38,18 +39,35 @@ def cmd_build(args):
     dropped = graph["meta"]["dropped_edges"]
     if n > SCALE_WARN_NODES:
         est = (n * n) / 5_000_000.0  # rough seconds estimate, O(V^2)
+        # stderr so it never corrupts --json stdout
         print(f"WARNING: {n} nodes — build is O(V^2+VE); estimated ~{est:.0f}s. "
               f"blastpack targets domain-sized collections; a large forest will not "
-              f"finish on a laptop.")
+              f"finish on a laptop.", file=sys.stderr)
     p = pack.build_pack(graph, source_name=args.source.rstrip("/").split("/")[-1],
                         build_timestamp=_utc_now_iso())
     pack.write_pack(p, args.output)
     st = p["stats"]
-    print(f"built {args.output}: nodes={n} edges={edges} dropped={dropped} "
-          f"mean_reach={st['mean_reach']:.1f} ratio={st['compression_ratio']:.4f}")
     prov = p["provenance"]
     unsupported_rights = sum(prov["unsupported_edge_counts"].values())
     unmodeled_files = sum(prov["unsupported_file_types"].values())
+    clean = unsupported_rights == 0 and unmodeled_files == 0
+
+    if args.as_json:
+        return _emit_json({
+            "output": args.output,
+            "node_count": n,
+            "edge_count": edges,
+            "dropped_count": dropped,
+            "mean_reach": st["mean_reach"],
+            "compression_ratio": st["compression_ratio"],
+            "unsupported_edge_counts": prov["unsupported_edge_counts"],
+            "unsupported_file_types": prov["unsupported_file_types"],
+            "coverage_status": "clean" if clean else "partial",
+            "bloodhound_complete": False,
+        })
+
+    print(f"built {args.output}: nodes={n} edges={edges} dropped={dropped} "
+          f"mean_reach={st['mean_reach']:.1f} ratio={st['compression_ratio']:.4f}")
     print(f"edge-coverage: unsupported_rights={unsupported_rights} "
           f"unmodeled_files={unmodeled_files} "
           f"(supported control-edge subset, not BloodHound-complete)")
@@ -239,6 +257,7 @@ def build_parser():
     b = sub.add_parser("build", help="load, close, compress, gate, write")
     b.add_argument("source", help="SharpHound JSON directory or .zip")
     b.add_argument("-o", "--output", required=True, help="output .blastpack path")
+    _add_json_flag(b)
     b.set_defaults(func=cmd_build)
 
     i = sub.add_parser("info", help="provenance + stats + compression ratio")

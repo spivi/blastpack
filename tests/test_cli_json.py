@@ -19,6 +19,17 @@ def _json_out(capsys, argv):
     return json.loads(capsys.readouterr().out)
 
 
+def test_build_json_schema(tmp_path, capsys):
+    out = tmp_path / "essos.blastpack"
+    d = _json_out(capsys, ["build", FIXTURE, "-o", str(out), "--json"])
+    assert out.exists()
+    assert d["node_count"] == 11
+    assert d["bloodhound_complete"] is False
+    assert d["coverage_status"] == "clean"  # essos fixture is fully modeled
+    assert "unsupported_edge_counts" in d
+    assert "unsupported_file_types" in d
+
+
 def test_info_json_schema(tmp_path, capsys):
     path = _build(tmp_path)
     d = _json_out(capsys, ["info", "--json", path])
